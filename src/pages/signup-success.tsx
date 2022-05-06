@@ -13,13 +13,16 @@ export default function HomePage() {
       <main>
         <section className='bg-white'>
           <div className='layout flex min-h-screen flex-col items-center justify-center text-center'>
-            <h1 className='mt-4'>Warehouse Game</h1>
+            <h1>Looks good!</h1>
+            <p className='mt-4'>
+              Make sure to confirm your email before you start playing!
+            </p>
             <ButtonLink
               variant='primary'
               className='mt-6'
               href='/puzzle/random'
             >
-              Start
+              Random Level
             </ButtonLink>
           </div>
         </section>

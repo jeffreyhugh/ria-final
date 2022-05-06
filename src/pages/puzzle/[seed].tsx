@@ -1,5 +1,5 @@
-import { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
+import { NextPageContext } from 'next/types';
 import * as React from 'react';
 
 import { keycode, tiles } from '@/lib/game_const';
@@ -105,15 +105,14 @@ export default function Page({ seed }: { seed: string }) {
 
 // getServerSideProps will fetch the seed from the dynamic route on the server, instead of on the client
 // if the seed is fetched from the client, it could seed the random number generator incorrectly
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
+export async function getServerSideProps(ctx: NextPageContext) {
   const { seed } = ctx.query;
-
   return {
     props: {
       seed,
     },
   };
-};
+}
 
 const Board = ({
   gameValues,
@@ -212,47 +211,49 @@ const OnScreenControls = ({
   handleGameLogic,
 }: {
   handleGameLogic: (key: string) => void;
-}) => (
-  <>
-    <div
-      title='Explode crate'
-      className='col-span-1 col-start-1 row-span-1 row-start-1 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-      onClick={() => handleGameLogic(keycode.SPACE)}
-    >
-      {/* bomb emoji */}
-      <span className='text-2xl'>💣</span>
-    </div>
-    <div
-      title='Move up'
-      className='col-span-1 col-start-2 row-span-1 row-start-1 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-      onClick={() => handleGameLogic(keycode.UP)}
-    >
-      {/* arrow up emoji */}
-      <span className='text-2xl'>⬆</span>
-    </div>
-    <div
-      title='Move left'
-      className='col-span-1 col-start-1 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-      onClick={() => handleGameLogic(keycode.LEFT)}
-    >
-      {/* arrow left emoji */}
-      <span className='text-2xl'>⬅</span>
-    </div>
-    <div
-      title='Move down'
-      className='col-span-1 col-start-2 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-      onClick={() => handleGameLogic(keycode.DOWN)}
-    >
-      {/* arrow down emoji */}
-      <span className='text-2xl'>⬇</span>
-    </div>
-    <div
-      title='Move right'
-      className='col-span-1 col-start-3 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-      onClick={() => handleGameLogic(keycode.RIGHT)}
-    >
-      {/* arrow right emoji */}
-      <span className='text-2xl'>➡</span>
-    </div>
-  </>
-);
+}) => {
+  return (
+    <>
+      <div
+        title='Explode crate'
+        className='col-span-1 col-start-1 row-span-1 row-start-1 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+        onClick={() => handleGameLogic(keycode.SPACE)}
+      >
+        {/* bomb emoji */}
+        <span className='text-2xl'>💣</span>
+      </div>
+      <div
+        title='Move up'
+        className='col-span-1 col-start-2 row-span-1 row-start-1 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+        onClick={() => handleGameLogic(keycode.UP)}
+      >
+        {/* arrow up emoji */}
+        <span className='text-2xl'>⬆</span>
+      </div>
+      <div
+        title='Move left'
+        className='col-span-1 col-start-1 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+        onClick={() => handleGameLogic(keycode.LEFT)}
+      >
+        {/* arrow left emoji */}
+        <span className='text-2xl'>⬅</span>
+      </div>
+      <div
+        title='Move down'
+        className='col-span-1 col-start-2 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+        onClick={() => handleGameLogic(keycode.DOWN)}
+      >
+        {/* arrow down emoji */}
+        <span className='text-2xl'>⬇</span>
+      </div>
+      <div
+        title='Move right'
+        className='col-span-1 col-start-3 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+        onClick={() => handleGameLogic(keycode.RIGHT)}
+      >
+        {/* arrow right emoji */}
+        <span className='text-2xl'>➡</span>
+      </div>
+    </>
+  );
+};
