@@ -6,16 +6,29 @@ export const direction = {
 };
 
 export const keycode = {
-  W: 87,
-  A: 65,
-  S: 83,
-  D: 68,
-  UP: 38,
-  LEFT: 37,
-  DOWN: 40,
-  RIGHT: 39,
-  SPACE: 32,
+  W: 'w',
+  A: 'a',
+  S: 's',
+  D: 'd',
+  UP: 'up',
+  LEFT: 'left',
+  DOWN: 'down',
+  RIGHT: 'right',
+  SPACE: 'space',
 };
+
+// array of keycode values
+export const keycodeArray = [
+  keycode.W,
+  keycode.A,
+  keycode.S,
+  keycode.D,
+  keycode.UP,
+  keycode.LEFT,
+  keycode.DOWN,
+  keycode.RIGHT,
+  keycode.SPACE,
+];
 
 export const scores = {
   MOVE: 1,
@@ -51,3 +64,12 @@ export const nMin = 8;
 export const nMax = 12;
 
 export const crateWeights = [0.7, 0.8, 0.9, 1.0];
+
+export interface Bob {
+  row: number;
+  col: number;
+  direction: number;
+  doorCol: number;
+  targetRow: number;
+  targetCol: number;
+}

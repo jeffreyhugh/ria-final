@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import seedrandom from 'seedrandom';
 
 import {
   crateWeights,
   direction,
+  keycode,
   maxPush,
   nMax,
   nMin,
   scores,
-} from './gamestate_const';
+} from './game_const';
+import useSynchronousState from './useSynchronousState';
 
-interface Bob {
+export interface Bob {
   row: number;
   col: number;
   direction: number;
@@ -19,14 +21,29 @@ interface Bob {
   targetCol: number;
 }
 
-export default function useGameState(seed: string) {
-  const random = seedrandom(seed);
+export interface GameState {
+  Init: (seed: string) => void;
+  TurnBob: (direction: number) => void;
+  MoveBob: () => void;
+  ExplodeCrate: () => void;
+  CheckWin: () => boolean;
+  GetScore: () => number;
+  GetBoard: () => number[][];
+  GetBob: () => Bob;
+  GetAllData: () => string;
+  SetAllData: (data: string) => void;
+  HandleKeyDown: (key: string) => void;
+  ClearLastSeed: () => void;
+}
 
+export default function useGameState(): GameState {
   // !HOOKS
 
-  const [hasInit, setHasInit] = useState(false);
-  const [board, setBoard] = useState<number[][]>([]);
-  const [bob, setBob] = useState<Bob>({
+  // const [getLastSeed, setLastSeed] = useSynchronousState('');
+  // let lastSeed = '';
+  const lastSeed = useRef('');
+  const [getBoard, setBoard] = useSynchronousState<number[][]>([]);
+  const [getBob, setBob] = useSynchronousState<Bob>({
     row: 0,
     col: 0,
     direction: direction.NORTH,
@@ -35,30 +52,42 @@ export default function useGameState(seed: string) {
     targetCol: 0,
   });
   const [score, setScore] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
 
   // !UTILS
 
   // count the number of crates in front of bob
   // return an array of crate values or an empty array if bob cannot move forward
   const countBeforeBob = () => {
+    // deep copy bob
+    const tempBob = { ...getBob() };
+    // deep copy board
+    const tempBoard = getBoard().map((row) => row.slice());
+
     const result = [];
 
     for (let i = 1; ; i++) {
       let crate = -1;
-      switch (bob.direction) {
+      switch (tempBob.direction) {
         case direction.NORTH:
-          crate = bob.row - i >= 0 ? board[bob.row - i][bob.col] : -1;
+          crate =
+            tempBob.row - i >= 0 ? tempBoard[tempBob.row - i][tempBob.col] : -1;
           break;
         case direction.EAST:
           crate =
-            bob.col + i < board[0].length ? board[bob.row][bob.col + i] : -1;
+            tempBob.col + i < tempBoard[0].length
+              ? tempBoard[tempBob.row][tempBob.col + i]
+              : -1;
           break;
         case direction.SOUTH:
-          crate = bob.row + i < board.length ? board[bob.row + i][bob.col] : -1;
+          crate =
+            tempBob.row + i < tempBoard.length
+              ? tempBoard[tempBob.row + i][tempBob.col]
+              : -1;
           break;
         case direction.WEST:
-          crate = bob.col - i >= 0 ? board[bob.row][bob.col - i] : -1;
+          crate =
+            tempBob.col - i >= 0 ? tempBoard[tempBob.row][tempBob.col - i] : -1;
           break;
       }
 
@@ -67,7 +96,7 @@ export default function useGameState(seed: string) {
         return [];
       } else if (crate === 0) {
         // crate
-        result.push(i);
+        result.push(crate);
         return result.reduce((a, b) => a + b, 0) <= maxPush ? result : [];
       } else {
         result.push(crate);
@@ -76,18 +105,24 @@ export default function useGameState(seed: string) {
     }
   };
 
-  const getAllData = () => {
-    const data = {
-      board,
-      bob,
+  interface AllData {
+    board: number[][];
+    bob: Bob;
+    isPlaying: boolean;
+  }
+
+  const GetAllData = () => {
+    const data: AllData = {
+      board: getBoard(),
+      bob: getBob(),
       isPlaying,
     };
 
     return JSON.stringify(data);
   };
 
-  const setAllData = (data: string) => {
-    const parsedData = JSON.parse(data);
+  const SetAllData = (data: string) => {
+    const parsedData = JSON.parse(data) as AllData;
     setBoard(parsedData.board);
     setBob(parsedData.bob);
     setIsPlaying(parsedData.isPlaying);
@@ -95,13 +130,12 @@ export default function useGameState(seed: string) {
 
   // !EXPORTED
 
-  const init = () => {
-    if (hasInit) return;
+  const Init = (seed: string) => {
+    if (lastSeed.current === seed) return;
 
-    // seed the random number generator using a library
-    // const random = seedrandom(seed);
+    lastSeed.current = seed;
 
-    setHasInit(true);
+    const random = seedrandom(seed);
 
     const n = Math.floor(random() * (nMax - nMin + 1)) + nMin;
 
@@ -155,16 +189,16 @@ export default function useGameState(seed: string) {
     setBob(tempBob);
   };
 
-  const turnBob = (direction: number) => {
-    const tempBob = { ...bob };
-    tempBob.direction = direction;
-    setBob(tempBob);
+  const TurnBob = (direction: number) => {
+    setBob({ ...getBob(), direction });
     setScore((score) => score + scores.TURN);
   };
 
-  const moveBob = () => {
-    const tempBob = { ...bob };
-    const tempBoard = [...board];
+  const MoveBob = () => {
+    // deep copy bob
+    const tempBob = { ...getBob() };
+    // deep copy board
+    const tempBoard = getBoard().map((row) => row.slice());
 
     const cratesBeforeBob = countBeforeBob();
     if (cratesBeforeBob.length === 0) {
@@ -249,9 +283,12 @@ export default function useGameState(seed: string) {
     setBob(tempBob);
   };
 
-  const explodeCrate = () => {
-    const tempBoard = [...board];
-    const tempBob = { ...bob };
+  const ExplodeCrate = () => {
+    // deep copy bob
+    const tempBob = { ...getBob() };
+    // deep copy board
+    const tempBoard = getBoard().map((row) => row.slice());
+
     switch (tempBob.direction) {
       case direction.NORTH:
         if (
@@ -315,38 +352,81 @@ export default function useGameState(seed: string) {
     setBob(tempBob);
   };
 
-  const checkWin = () => {
-    if (bob.targetCol === bob.doorCol && bob.targetRow === n - 1) {
+  const CheckWin = () => {
+    if (
+      getBob().targetCol === getBob().doorCol &&
+      getBob().targetRow === getBoard().length - 1
+    ) {
       setIsPlaying(false);
       return true;
     }
     return false;
   };
 
-  const getScore = () => {
+  const GetScore = () => {
     return score;
   };
 
-  const getBoard = () => {
-    return board;
+  const GetBoard = () => {
+    return getBoard();
   };
 
-  const getBob = () => {
-    return bob;
+  const GetBob = () => {
+    return getBob();
   };
 
-  init();
+  const HandleKeyDown = (key: string) => {
+    if (!isPlaying) {
+      return;
+    }
+
+    switch (key) {
+      case keycode.W:
+      case keycode.UP:
+        getBob().direction === direction.NORTH
+          ? MoveBob()
+          : TurnBob(direction.NORTH);
+        break;
+      case keycode.A:
+      case keycode.LEFT:
+        getBob().direction === direction.WEST
+          ? MoveBob()
+          : TurnBob(direction.WEST);
+        break;
+      case keycode.S:
+      case keycode.DOWN:
+        getBob().direction === direction.SOUTH
+          ? MoveBob()
+          : TurnBob(direction.SOUTH);
+        break;
+      case keycode.D:
+      case keycode.RIGHT:
+        getBob().direction === direction.EAST
+          ? MoveBob()
+          : TurnBob(direction.EAST);
+        break;
+      case keycode.SPACE:
+        ExplodeCrate();
+        break;
+    }
+  };
+
+  const ClearLastSeed = () => {
+    lastSeed.current = '';
+  };
 
   return {
-    init,
-    turnBob,
-    moveBob,
-    explodeCrate,
-    checkWin,
-    getScore,
-    getBoard,
-    getBob,
-    getAllData,
-    setAllData,
+    Init,
+    TurnBob,
+    MoveBob,
+    ExplodeCrate,
+    CheckWin,
+    GetScore,
+    GetBoard,
+    GetBob,
+    GetAllData,
+    SetAllData,
+    HandleKeyDown,
+    ClearLastSeed,
   };
 }
