@@ -39,7 +39,8 @@ export default function Page({
   });
   const { handleSubmit } = methods;
 
-  const onSubmit = async (submit: unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onSubmit = async (submit: any) => {
     if (!user) return;
 
     setSubmitDisabled(true);

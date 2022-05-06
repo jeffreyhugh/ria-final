@@ -20,7 +20,8 @@ export default function Page() {
   });
   const { handleSubmit } = methods;
 
-  const onSubmit = async (data: unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onSubmit = async (data: any) => {
     supabaseClient.auth
       .signIn(
         { email: data.email, password: data.password },
