@@ -83,6 +83,7 @@ export const init = (seed: string): GameValues => {
     doorCol: startingCol,
     targetRow: 0,
     targetCol: 0,
+    seed: seed,
   };
 
   let randR = Math.floor(random() * n);

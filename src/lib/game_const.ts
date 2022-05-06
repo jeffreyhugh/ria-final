@@ -72,4 +72,5 @@ export interface Bob {
   doorCol: number;
   targetRow: number;
   targetCol: number;
+  seed: string;
 }

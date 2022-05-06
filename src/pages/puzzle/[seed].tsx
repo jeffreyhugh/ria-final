@@ -1,16 +1,28 @@
+import { Dialog } from '@headlessui/react';
+import { supabaseServerClient } from '@supabase/supabase-auth-helpers/nextjs';
+import { useUser } from '@supabase/supabase-auth-helpers/react';
 import { useRouter } from 'next/router';
-import { NextPageContext } from 'next/types';
+import { GetServerSidePropsContext } from 'next/types';
 import * as React from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 
 import { keycode, tiles } from '@/lib/game_const';
 import { checkWin, GameValues, handleKeyDown, init } from '@/lib/game_utils';
+import { PuzzleRow } from '@/lib/puzzleRow';
 
 import Button from '@/components/buttons/Button';
+import Input from '@/components/forms/Input';
 import Layout from '@/components/layout/Layout';
 import ButtonLink from '@/components/links/ButtonLink';
 import Seo from '@/components/Seo';
 
-export default function Page({ seed }: { seed: string }) {
+export default function Page({
+  seed,
+  data,
+}: {
+  seed: string;
+  data: PuzzleRow | null;
+}) {
   const router = useRouter();
 
   const initial = init(seed);
@@ -19,6 +31,36 @@ export default function Page({ seed }: { seed: string }) {
   const [board, setBoard] = React.useState(initial.board);
   const [score, setScore] = React.useState(initial.score);
   const [isPlaying, setIsPlaying] = React.useState(true);
+
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [submitDisabled, setSubmitDisabled] = React.useState(false);
+  const methods = useForm({
+    mode: 'onTouched',
+  });
+  const { handleSubmit } = methods;
+
+  const onSubmit = async (submit: unknown) => {
+    if (!user) return;
+
+    setSubmitDisabled(true);
+    fetch('/api/score', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        seed,
+        username: user.user_metadata.username,
+        levelName: submit.puzzleName,
+        score,
+      }),
+    }).finally(() => {
+      setModalOpen(false);
+      setSubmitDisabled(false);
+    });
+  };
+
+  const { user } = useUser();
 
   const handleGameLogic = (key: string) => {
     if (isPlaying) {
@@ -30,6 +72,13 @@ export default function Page({ seed }: { seed: string }) {
 
       if (checkWin(newState)) {
         setIsPlaying(false);
+
+        // conditions where user has gotten a leaderboard position
+        if (!data) {
+          setModalOpen(true);
+        } else if (user && score < data.score) {
+          setModalOpen(true);
+        }
       }
     }
   };
@@ -40,6 +89,45 @@ export default function Page({ seed }: { seed: string }) {
 
       <main>
         <section className=''>
+          <div>
+            <Dialog
+              open={modalOpen}
+              onClose={() => setModalOpen(false)}
+              className='relative z-10'
+            >
+              <div
+                className='fixed inset-0 backdrop-blur-sm'
+                aria-hidden='true'
+              />
+              <div className='fixed inset-0 flex items-center justify-center p-4'>
+                <Dialog.Panel className='flex flex-col items-center rounded-md border border-black bg-white p-4'>
+                  <Dialog.Title>New High Score!</Dialog.Title>
+                  <FormProvider {...methods}>
+                    <form
+                      onSubmit={handleSubmit(onSubmit)}
+                      className='mt-6 flex flex-col items-center space-y-3'
+                    >
+                      {data && data.puzname ? null : (
+                        <Input
+                          id='puzzleName'
+                          label='Puzzle Name'
+                          validation={{ required: 'Puzzle name is required' }}
+                        />
+                      )}
+                      <Button
+                        type='submit'
+                        className='select-none'
+                        disabled={submitDisabled}
+                      >
+                        Submit High Score
+                      </Button>
+                    </form>
+                  </FormProvider>
+                </Dialog.Panel>
+              </div>
+            </Dialog>
+          </div>
+
           <div className='layout flex min-h-screen flex-col items-center justify-center text-center'>
             <h1 className='mt-4'>Warehouse Game</h1>
             <div className='mt-2 flex justify-between gap-2' id='buttonBar'>
@@ -88,6 +176,7 @@ export default function Page({ seed }: { seed: string }) {
                   score,
                 }}
                 isPlaying={isPlaying}
+                levelData={data}
               />
             </div>
             <div
@@ -105,11 +194,19 @@ export default function Page({ seed }: { seed: string }) {
 
 // getServerSideProps will fetch the seed from the dynamic route on the server, instead of on the client
 // if the seed is fetched from the client, it could seed the random number generator incorrectly
-export async function getServerSideProps(ctx: NextPageContext) {
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   const { seed } = ctx.query;
+
+  const { data } = await supabaseServerClient(ctx)
+    .from('puzzles')
+    .select('*')
+    .eq('seedlev', seed)
+    .limit(1);
+
   return {
     props: {
       seed,
+      data: data && data[0] ? data[0] : null,
     },
   };
 }
@@ -117,9 +214,11 @@ export async function getServerSideProps(ctx: NextPageContext) {
 const Board = ({
   gameValues,
   isPlaying,
+  levelData,
 }: {
   gameValues: GameValues;
   isPlaying: boolean;
+  levelData: PuzzleRow | null;
 }) => {
   const boardSize = gameValues.board.length;
 
@@ -195,13 +294,25 @@ const Board = ({
           )}
         </div>
       </div>
-      <div className='bold mt-2 flex w-full justify-start text-xl' id='score'>
-        {isPlaying ? (
-          <span title='Playing'>🎮</span>
-        ) : (
-          <span title='You win!'>💰</span>
-        )}{' '}
-        {gameValues.score}
+      <div className='bold mt-2 flex w-full justify-between text-xl' id='score'>
+        <div>
+          {isPlaying ? (
+            <span title='Playing'>🎮</span>
+          ) : (
+            <span title='You win!'>💰</span>
+          )}{' '}
+          {gameValues.score}
+        </div>
+        <div className='flex flex-col items-end'>
+          <p>
+            {levelData ? levelData.score : '???'}{' '}
+            <span title='High score'>🥇</span>
+          </p>
+          <p>
+            {levelData ? levelData.recname : '???'}{' '}
+            <span title='Record holder'>👑</span>
+          </p>
+        </div>
       </div>
     </>
   );
