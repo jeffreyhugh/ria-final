@@ -36,3 +36,4 @@ This was my first real project in TypeScript.
 - [ ] Figure out the issue with the keyboard controls (I suspect it has something to do with `useState`)
 - [ ] Refactor the puzzle page code so it is easier to read and understand
 - [ ] Add a small preview of each puzzle on the puzzle list page
+- [ ] Remove the explicit `any` when dealing with form submissions
