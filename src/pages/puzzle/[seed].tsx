@@ -1,4 +1,5 @@
 import { GetServerSideProps } from 'next';
+import { useRouter } from 'next/router';
 import * as React from 'react';
 
 import { keycode, tiles } from '@/lib/game_const';
@@ -10,7 +11,7 @@ import ButtonLink from '@/components/links/ButtonLink';
 import Seo from '@/components/Seo';
 
 export default function Page({ seed }: { seed: string }) {
-  // const router = useRouter();
+  const router = useRouter();
 
   const initial = init(seed);
 
@@ -42,7 +43,28 @@ export default function Page({ seed }: { seed: string }) {
           <div className='layout flex min-h-screen flex-col items-center justify-center text-center'>
             <h1 className='mt-4'>Warehouse Game</h1>
             <div className='mt-2 flex justify-between gap-2' id='buttonBar'>
-              <ButtonLink href='/puzzle/random'>New Game</ButtonLink>
+              <Button
+                onClick={() => {
+                  // new seed is between 1111 and 999999, casted to a string
+                  const newSeed = Math.floor(
+                    Math.random() * (999999 - 1111) + 1111
+                  ).toString();
+
+                  // TODO pushing a new route does not update the page/state/something
+                  // console.log suggests the new data is correctly initialized, but it is not rendered
+                  // the workaround is below (set state manually)
+                  router.push(`/puzzle/${newSeed}`);
+
+                  const initial = init(newSeed);
+
+                  setBob(initial.bob);
+                  setBoard(initial.board);
+                  setScore(initial.score);
+                  setIsPlaying(true);
+                }}
+              >
+                New Game
+              </Button>
               <Button
                 onClick={() => {
                   setBob(initial.bob);
@@ -70,43 +92,9 @@ export default function Page({ seed }: { seed: string }) {
             </div>
             <div
               className='mt-2 grid grid-cols-3 grid-rows-2 gap-1'
-              id='controlBar'
+              id='onScreenControls'
             >
-              <div
-                className='col-span-1 col-start-1 row-span-1 row-start-1 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-                onClick={() => handleGameLogic(keycode.SPACE)}
-              >
-                {/* bomb emoji */}
-                <span className='text-2xl'>💣</span>
-              </div>
-              <div
-                className='col-span-1 col-start-2 row-span-1 row-start-1 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-                onClick={() => handleGameLogic(keycode.UP)}
-              >
-                {/* arrow up emoji */}
-                <span className='text-2xl'>⬆</span>
-              </div>
-              <div
-                className='col-span-1 col-start-1 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-                onClick={() => handleGameLogic(keycode.LEFT)}
-              >
-                {/* arrow left emoji */}
-                <span className='text-2xl'>⬅</span>
-              </div>
-              <div
-                className='col-span-1 col-start-2 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-                onClick={() => handleGameLogic(keycode.DOWN)}
-              >
-                {/* arrow down emoji */}
-                <span className='text-2xl'>⬇</span>
-              </div>
-              <div
-                className='col-span-1 col-start-3 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
-                onClick={() => handleGameLogic(keycode.RIGHT)}
-              >
-                {/* arrow right emoji */}
-                <span className='text-2xl'>➡</span>
-              </div>
+              <OnScreenControls handleGameLogic={handleGameLogic} />
             </div>
           </div>
         </section>
@@ -219,3 +207,52 @@ const Board = ({
     </>
   );
 };
+
+const OnScreenControls = ({
+  handleGameLogic,
+}: {
+  handleGameLogic: (key: string) => void;
+}) => (
+  <>
+    <div
+      title='Explode crate'
+      className='col-span-1 col-start-1 row-span-1 row-start-1 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+      onClick={() => handleGameLogic(keycode.SPACE)}
+    >
+      {/* bomb emoji */}
+      <span className='text-2xl'>💣</span>
+    </div>
+    <div
+      title='Move up'
+      className='col-span-1 col-start-2 row-span-1 row-start-1 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+      onClick={() => handleGameLogic(keycode.UP)}
+    >
+      {/* arrow up emoji */}
+      <span className='text-2xl'>⬆</span>
+    </div>
+    <div
+      title='Move left'
+      className='col-span-1 col-start-1 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+      onClick={() => handleGameLogic(keycode.LEFT)}
+    >
+      {/* arrow left emoji */}
+      <span className='text-2xl'>⬅</span>
+    </div>
+    <div
+      title='Move down'
+      className='col-span-1 col-start-2 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+      onClick={() => handleGameLogic(keycode.DOWN)}
+    >
+      {/* arrow down emoji */}
+      <span className='text-2xl'>⬇</span>
+    </div>
+    <div
+      title='Move right'
+      className='col-span-1 col-start-3 row-span-1 row-start-2 h-8 w-8 cursor-pointer select-none rounded-md bg-gray-200 ring ring-gray-400'
+      onClick={() => handleGameLogic(keycode.RIGHT)}
+    >
+      {/* arrow right emoji */}
+      <span className='text-2xl'>➡</span>
+    </div>
+  </>
+);
