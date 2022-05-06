@@ -79,7 +79,7 @@ export default function Page({
           return
         } else if (user && !data) {
           setModalOpen(true);
-        } else if (user && score < data.score) {
+        } else if (user && data && score < data.score) {
           setModalOpen(true);
         }
       }
