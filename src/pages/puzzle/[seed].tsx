@@ -77,6 +77,8 @@ export default function Page({
         // conditions where user has gotten a leaderboard position
         if (user && !data) {
           setModalOpen(true);
+        } else if (!user && !data) {
+          return;
         } else if (user && score < data.score) {
           setModalOpen(true);
         }
